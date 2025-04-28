@@ -1,5 +1,7 @@
 # frameview-analyser
 
+![Screenshot showing GUI](https://github.com/BLedge99/frameview-analyser/blob/main/Screenshot.png)
+
 This is a Python project designed to show line graph plots made from Nvidia FrameView csv files.
 
 ## Project Structure
