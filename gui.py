@@ -1,6 +1,6 @@
 import sys
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import matplotlib.pyplot as plt
@@ -13,6 +13,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Frame View Analyser")
         self.resize(1600, 800)  # Adjust main window dimensions
         self.dataAnalyser = None
+        self.useNormalized = True  # Default to using normalized values
 
         # Setup UI
         self.centralwidget = QtWidgets.QWidget(self)
@@ -45,6 +46,12 @@ class MainWindow(QMainWindow):
         self.yAxisListWidget.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
         self.yAxisListWidget.itemSelectionChanged.connect(self.refreshPlot)
         self.controlLayout.addWidget(self.yAxisListWidget)
+
+        # Checkbox for Normalized Values
+        self.normalizedCheckbox = QtWidgets.QCheckBox("Use Normalized Values", self)
+        self.normalizedCheckbox.setChecked(True)  # Default to checked
+        self.normalizedCheckbox.stateChanged.connect(self.refreshPlot)
+        self.controlLayout.addWidget(self.normalizedCheckbox)
 
         self.horizontalLayout.addLayout(self.controlLayout)
 
@@ -127,17 +134,23 @@ class MainWindow(QMainWindow):
 
         ax = self.canvas.figure.add_subplot(111)
         try:
-            # Normalize and plot Y-axis values
+            # Plot Y-axis values based on normalization checkbox
+            self.useNormalized = self.normalizedCheckbox.isChecked()
             for y_plot in y_plots:
-                max_value = self.dataAnalyser.df[y_plot].max()
-                if max_value == 0:
-                    normalized_values = self.dataAnalyser.df[y_plot]  # Handle max value of zero
+                if self.useNormalized:
+                    max_value = self.dataAnalyser.df[y_plot].max()
+                    if max_value == 0:
+                        values = self.dataAnalyser.df[y_plot]  # Handle max value of zero
+                    else:
+                        values = self.dataAnalyser.df[y_plot] / max_value
+                    label = f"{y_plot} (Normalized)"
                 else:
-                    normalized_values = self.dataAnalyser.df[y_plot] / max_value
-                ax.plot(self.dataAnalyser.df[x_plot], normalized_values, label=f"{y_plot} (Normalized)")
+                    values = self.dataAnalyser.df[y_plot]
+                    label = y_plot
+                ax.plot(self.dataAnalyser.df[x_plot], values, label=label)
             ax.set_xlabel(x_plot)
-            ax.set_ylabel("Normalized Values")
-            ax.set_title("Normalized Line Graph")
+            ax.set_ylabel("Values" if not self.useNormalized else "Normalized Values")
+            ax.set_title("Line Graph" if not self.useNormalized else "Normalized Line Graph")
             ax.legend()
             ax.grid(True)
         except Exception as e:
@@ -148,24 +161,4 @@ class MainWindow(QMainWindow):
         self.canvas.draw()
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    app.setStyle('Fusion')
-    palette = QtGui.QPalette()
-    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.Base, QtGui.QColor(15, 15, 15))
-    palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-    palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
-    palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197).lighter())
-    palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
-    app.setPalette(palette)
 
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
